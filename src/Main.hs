@@ -1,39 +1,66 @@
 import System.Random (randomRIO)
 import Control.Monad (replicateM)
+import Data.List (intercalate)
 
-type WordList = [(String, Int)]  -- (slovo, počet slabik)
+-- Datové typy pro nálady a témata
+data Mood = Happy | Sad | Reflective deriving (Show, Enum, Bounded)
+data Theme = Rain | Forest | Night | City deriving (Show, Enum, Bounded)
 
-fiveSyllables :: WordList
-fiveSyllables =
-  [ ("Silent moonlight", 5), ("Winds embrace the hills", 5)
-  , ("Frozen fields sleep", 5), ("Autumn leaves drift", 5)
-  , ("Stars beyond the clouds", 5)
-  ]
+-- Pomocná funkce pro výběr náhodného prvku
+randomFrom :: [a] -> IO a
+randomFrom xs = do
+  idx <- randomRIO (0, length xs - 1)
+  return (xs !! idx)
 
-sevenSyllables :: WordList
-sevenSyllables =
-  [ ("Soft rain whispers on the roof", 7)
-  , ("Cherry blossoms gently fall", 7)
-  , ("Dreams awaken under trees", 7)
-  , ("Lanterns glow in distant mist", 7)
-  , ("Owls cry beneath pale branches", 7)
-  ]
+-- Výběr z předem definovaných možností
+promptChoice :: (Show a, Enum a, Bounded a) => String -> IO a
+promptChoice label = do
+  putStrLn $ "\n" ++ label
+  let options = [minBound .. maxBound]
+  mapM_ (\(i, opt) -> putStrLn $ show i ++ ". " ++ show opt) (zip [1..] options)
+  putStr "Zadej číslo: "
+  idx <- readLn
+  return (options !! (idx - 1))
 
-randomFrom :: WordList -> IO String
-randomFrom wl = do
-  index <- randomRIO (0, length wl - 1)
-  return (fst (wl !! index))
+-- Slovníky podle nálady a tématu
+getWordLists :: Mood -> Theme -> ([String], [String], [String])
+getWordLists Happy Forest =
+  ( ["Morning sun breaks through", "Laughing leaves dancing"]
+  , ["Squirrels leap on mossy trunks", "Birdsongs echo far and wide"]
+  , ["Joy hides in green shade", "Peace returns with wind"]
+  )
+getWordLists Sad Night =
+  ( ["Empty streets at dusk", "Cold wind sighs alone"]
+  , ["Darkness swallows silent stars", "Footsteps fade into the void"]
+  , ["Nothing left to say", "Tears fall with the moon"]
+  )
+getWordLists Reflective Rain =
+  ( ["Drops paint the window", "Stillness in my breath"]
+  , ["Thoughts like rivers slowly pass", "Puddles mirror what I am"]
+  , ["Grey clouds drift within", "Past lives drip away"]
+  )
+getWordLists _ _ =
+  ( ["Leaves fall quietly", "Silent moonlight shines"]
+  , ["Dreams awaken under trees", "Lanterns glow in distant mist"]
+  , ["Peace comes after rain", "Stars begin to blink"]
+  )
 
-generateHaiku :: IO String
-generateHaiku = do
-  l1 <- randomFrom fiveSyllables
-  l2 <- randomFrom sevenSyllables
-  l3 <- randomFrom fiveSyllables
-  return $ unlines [l1, l2, l3]
+-- Generování haiku z dat
+generateHaiku :: Mood -> Theme -> IO String
+generateHaiku mood theme = do
+  let (l1s, l2s, l3s) = getWordLists mood theme
+  l1 <- randomFrom l1s
+  l2 <- randomFrom l2s
+  l3 <- randomFrom l3s
+  return $ intercalate "\n" [l1, l2, l3]
 
+-- Hlavní funkce
 main :: IO ()
 main = do
-  putStrLn "Generated Haiku:"
-  putStrLn "----------------"
-  poem <- generateHaiku
+  putStrLn "Vítej v generátoru Haiku!"
+  mood <- promptChoice "Vyber náladu:"
+  theme <- promptChoice "Vyber téma:"
+  putStrLn "\nVygenerované Haiku:"
+  putStrLn "--------------------"
+  poem <- generateHaiku mood theme
   putStrLn poem
